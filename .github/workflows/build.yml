@@ -1,22 +1,33 @@
-name: Build & Sign
+name: Build iOS App
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: macos-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Compile mobile.m
+      - name: Set up Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Compile iOS code with clang
         run: |
           mkdir -p build
-          clang -framework Foundation C/mobile.m -o build/mobile
+          clang -isysroot $(xcrun --sdk iphoneos --show-sdk-path) \
+                -arch arm64 \
+                -framework UIKit \
+                -framework Foundation \
+                -o build/launcher-ios C/launcher.m
 
-      - name: Verify signature
-        run: codesign -dv --verbose=4 build/mobile
+      - name: Upload iOS launcher
+        uses: actions/upload-artifact@v4
+        with:
+          name: launcher-ios
+          path: build/launcher-ios
