@@ -1,0 +1,33 @@
+name: Build & Sign
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Import certificate
+        run: |
+          security create-keychain -p "" build.keychain
+          security import sign/cert.p12 -k ~/Library/Keychains/build.keychain -P "" -T /usr/bin/codesign
+          security list-keychains -s ~/Library/Keychains/build.keychain
+          security unlock-keychain -p "" ~/Library/Keychains/build.keychain
+
+      - name: Compile mobile.m
+        run: |
+          mkdir -p build
+          clang -framework Foundation C/mobile.m -o build/mobile
+
+      - name: Sign executable
+        run: |
+          codesign --force --sign "Apple Development" build/mobile
