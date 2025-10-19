@@ -1,4 +1,4 @@
-name: Build iOS App
+name: Build iOS Executable
 
 on:
   push:
@@ -14,20 +14,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Xcode
-        run: sudo xcode-select -s /Applications/Xcode.app
-
-      - name: Compile iOS code with clang
+      - name: Compile Objective-C for iOS
         run: |
-          mkdir -p build
+          mkdir -p app/Contents/MacOS
           clang -isysroot $(xcrun --sdk iphoneos --show-sdk-path) \
-                -arch arm64 \
-                -framework UIKit \
-                -framework Foundation \
-                -o build/launcher-ios C/launcher.m
+            -arch arm64 \
+            -framework UIKit \
+            -framework Foundation \
+            -fobjc-arc \
+            -o app/Contents/MacOS/launcher \
+            C/launcher.m
+          chmod +x app/Contents/MacOS/launcher
 
-      - name: Upload iOS launcher
+      - name: Upload iOS executable
         uses: actions/upload-artifact@v4
         with:
-          name: launcher-ios
-          path: build/launcher-ios
+          name: launcher-arm64
+          path: app/Contents/MacOS/launcher
