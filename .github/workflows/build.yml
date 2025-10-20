@@ -13,15 +13,10 @@ jobs:
     - name: Checkout Repo
       uses: actions/checkout@v3
 
-    - name: Install Xcode 26.0.1
-      run: |
-        curl -O https://download.developer.apple.com/Developer_Tools/Xcode_26.0.1/Xcode_26.0.1.xip
-        xip -x Xcode_26.0.1.xip
-        sudo mv Xcode_26.0.1.app /Applications/
-
-    - name: Setup Xcode
+    - name: Setup Xcode 26.0.1
       run: |
         sudo xcode-select -s /Applications/Xcode_26.0.1.app/Contents/Developer
+        xcodebuild -version
 
     - name: Install certificate
       run: |
