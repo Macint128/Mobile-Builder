@@ -1,33 +1,42 @@
-name: Build iOS Executable
+name: Compile & Sign launcher.m
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
 
 jobs:
   build:
     runs-on: macos-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout Repo
+      uses: actions/checkout@v3
 
-      - name: Compile Objective-C for iOS
-        run: |
-          mkdir -p app/Contents/MacOS
-          clang -isysroot $(xcrun --sdk iphoneos --show-sdk-path) \
-            -arch arm64 \
-            -framework UIKit \
-            -framework Foundation \
-            -fobjc-arc \
-            -o app/Contents/MacOS/launcher \
-            C/launcher.m
-          chmod +x app/Contents/MacOS/launcher
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v3
+      with:
+        xcode-version: '15.2'
 
-      - name: Upload iOS executable
-        uses: actions/upload-artifact@v4
-        with:
-          name: launcher-arm64
-          path: app/Contents/MacOS/launcher
+    - name: Install certificate
+      run: |
+        security create-keychain -p "" build.keychain
+        security import sign/cert.p12 -k build.keychain -P ${{ secrets.P12_PASSWORD }} -T /usr/bin/codesign
+        security list-keychains -s build.keychain
+        security unlock-keychain -p "" build.keychain
+
+    - name: Copy provisioning profile
+      run: |
+        mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+        cp sign/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+
+    - name: Compile launcher.m
+      run: |
+        IOS_SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+        clang -arch arm64 -isysroot "$IOS_SDK" -framework UIKit -framework Foundation -o C/launcher C/launcher.m
+        chmod +x C/launcher
+
+    - name: Code Sign launcher
+      run: |
+        CODESIGN_IDENTITY="iPhone Developer: Your Name (TEAMID)"
+        codesign -f -s "$CODESIGN_IDENTITY" --entitlements sign/entitlements.plist C/launcher
